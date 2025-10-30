@@ -1,147 +1,182 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cookie AI 🍪</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cookie AI</title>
   <style>
-    :root {
-      --bg: #0d1117;
-      --panel: #161b22;
-      --text: #e6edf3;
-      --accent: #58a6ff;
-      --ai-bubble: #1c2128;
-      --user-bubble: #238636;
-    }
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
       margin: 0;
+      background-color: #121212;
+      color: #e0e0e0;
+      font-family: "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
     }
-    h1 { color: var(--accent); }
-    #chat-box {
-      width: 90%;
-      max-width: 600px;
-      height: 70vh;
+    header {
+      background-color: #1e1e1e;
+      padding: 1rem;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #10a37f;
+      border-bottom: 1px solid #333;
+    }
+    #chat-container {
+      flex: 1;
       overflow-y: auto;
-      background: var(--panel);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      padding: 1rem;
       display: flex;
       flex-direction: column;
     }
-    .msg {
-      margin: 10px 0;
-      padding: 10px 14px;
-      border-radius: 10px;
-      white-space: pre-wrap;
+    .message {
+      max-width: 80%;
+      margin: 0.5rem 0;
+      padding: 0.8rem 1rem;
+      border-radius: 1rem;
+      line-height: 1.4;
+      word-wrap: break-word;
     }
-    .user { background: var(--user-bubble); align-self: flex-end; }
-    .ai { background: var(--ai-bubble); align-self: flex-start; }
-    #input-area {
-      width: 90%;
-      max-width: 600px;
+    .user {
+      align-self: flex-end;
+      background-color: #2f2f2f;
+    }
+    .ai {
+      align-self: flex-start;
+      background-color: #1a1a1a;
+      border: 1px solid #333;
+    }
+    footer {
       display: flex;
-      margin-top: 12px;
+      padding: 0.5rem;
+      background-color: #1e1e1e;
+      border-top: 1px solid #333;
     }
-    input {
+    #input {
       flex: 1;
-      padding: 12px;
-      border-radius: 8px;
+      background-color: #2a2a2a;
+      color: #fff;
       border: none;
+      border-radius: 0.5rem;
+      padding: 0.75rem;
       outline: none;
-      background: var(--panel);
-      color: var(--text);
     }
-    button {
-      margin-left: 10px;
-      background: var(--accent);
+    #send {
+      background-color: #10a37f;
       border: none;
       color: white;
-      border-radius: 8px;
-      padding: 12px 16px;
+      border-radius: 0.5rem;
+      margin-left: 0.5rem;
+      padding: 0 1rem;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background-color 0.2s ease;
     }
-    button:hover { background: #79b8ff; }
+    #send:hover {
+      background-color: #0d8a6d;
+    }
+    #key-box {
+      background-color: #1e1e1e;
+      border-bottom: 1px solid #333;
+      padding: 0.75rem 1rem;
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    #apiKeyInput {
+      flex: 1;
+      background-color: #2a2a2a;
+      border: none;
+      color: white;
+      border-radius: 0.5rem;
+      padding: 0.5rem;
+    }
+    #saveKey {
+      background-color: #10a37f;
+      border: none;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <h1>🍪 Cookie AI</h1>
-  <div id="chat-box"></div>
-  <div id="input-area">
-    <input id="user-input" type="text" placeholder="Ask Cookie AI anything..." />
-    <button id="send">Send</button>
+  <header>🍪 Cookie AI</header>
+  <div id="key-box">
+    <input id="apiKeyInput" type="password" placeholder="Paste your OpenRouter API key (sk-or-...)" />
+    <button id="saveKey">Save Key</button>
   </div>
+  <div id="chat-container"></div>
+  <footer>
+    <input id="input" placeholder="Type your message..." />
+    <button id="send">Send</button>
+  </footer>
 
   <script>
-    const chatBox = document.getElementById('chat-box');
-    const input = document.getElementById('user-input');
-    const sendBtn = document.getElementById('send');
-    const memory = JSON.parse(localStorage.getItem('cookieMemory')) || [];
+    const input = document.getElementById("input");
+    const sendBtn = document.getElementById("send");
+    const chat = document.getElementById("chat-container");
+    const keyInput = document.getElementById("apiKeyInput");
+    const saveKeyBtn = document.getElementById("saveKey");
 
-    // Load old messages
-    memory.forEach(m => addMessage(m.text, m.sender));
+    // Save / Load API key from local storage
+    saveKeyBtn.onclick = () => {
+      localStorage.setItem("openrouter_key", keyInput.value.trim());
+      alert("API key saved! You can now chat.");
+    };
+    keyInput.value = localStorage.getItem("openrouter_key") || "";
 
-    sendBtn.onclick = async () => {
+    // Load chat history
+    let history = JSON.parse(localStorage.getItem("cookie_ai_history") || "[]");
+    history.forEach(addMessage);
+
+    async function sendMessage() {
       const text = input.value.trim();
       if (!text) return;
-      addMessage(text, 'user');
-      input.value = '';
-      saveMemory(text, 'user');
+      addMessage({ role: "user", content: text });
+      input.value = "";
 
-      addMessage('Thinking...', 'ai');
-      const aiDiv = chatBox.lastChild;
+      const apiKey = localStorage.getItem("openrouter_key");
+      if (!apiKey) {
+        addMessage({ role: "ai", content: "⚠️ Please paste your OpenRouter API key above first." });
+        return;
+      }
 
       try {
-        const reply = await getAIResponse(text);
-        aiDiv.textContent = reply;
-        saveMemory(reply, 'ai');
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + apiKey
+          },
+          body: JSON.stringify({
+            model: "nvidia/nemotron-nano-12b-2vl",
+            messages: history.concat({ role: "user", content: text })
+          })
+        });
+        const data = await response.json();
+        const reply = data.choices?.[0]?.message?.content || "⚠️ No response.";
+        addMessage({ role: "ai", content: reply });
       } catch (err) {
-        aiDiv.textContent = '⚠️ Error connecting to AI.';
+        addMessage({ role: "ai", content: "⚠️ Error: " + err.message });
       }
-    };
-
-    function addMessage(text, sender) {
-      const msg = document.createElement('div');
-      msg.className = 'msg ' + sender;
-      msg.textContent = text;
-      chatBox.appendChild(msg);
-      chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    function saveMemory(text, sender) {
-      memory.push({ text, sender });
-      localStorage.setItem('cookieMemory', JSON.stringify(memory));
+    function addMessage(msg) {
+      const div = document.createElement("div");
+      div.classList.add("message", msg.role === "user" ? "user" : "ai");
+      div.textContent = msg.content;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+      history.push(msg);
+      localStorage.setItem("cookie_ai_history", JSON.stringify(history));
     }
 
-    async function getAIResponse(userText) {
-      const apiKey = "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; // Replace this later
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: "model: "nvidia/nemotron-nano-12b-2vl",
-,
-          messages: [
-            { role: "system", content: "You are Cookie AI, a friendly chat assistant." },
-            { role: "user", content: userText }
-          ]
-        })
-      });
-      const data = await response.json();
-      return data.choices?.[0]?.message?.content || "No response.";
-    }
+    sendBtn.onclick = sendMessage;
+    input.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
   </script>
 </body>
 </html>
